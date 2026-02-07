@@ -16,8 +16,8 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        scope: '/',
-        start_url: '/',
+        scope: '/cleardesingacao/',
+        start_url: '/cleardesingacao/',
         orientation: 'portrait',
         icons: [
           {
@@ -36,4 +36,5 @@ export default defineConfig({
       }
     })
   ],
+  base: '/cleardesingacao/',
 })

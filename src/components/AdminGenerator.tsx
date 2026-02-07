@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { db, type CleaningAssignment, type FieldServiceAssignment } from "../db";
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "./ui";
-import { format, addMonths, eachDayOfInterval, startOfMonth, setDate, isSunday, parseISO, startOfDay } from "date-fns";
+import { format, addMonths, eachDayOfInterval, startOfMonth, isSunday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar, Loader2 } from "lucide-react";
 
@@ -76,7 +76,7 @@ export function AdminGenerator() {
                 // Group B
                 // We cycle them.
 
-                let assigned = [];
+                let assigned: string[] = [];
                 if (nameList.length > 0) {
                     // If names are provided, take one line per Sunday? Or rotating groups?
                     // Let's assume one line = one group description or list of names.
