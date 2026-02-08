@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { db, type CleaningAssignment, type FieldServiceAssignment } from "../db";
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "./ui";
-import { format, addMonths, eachDayOfInterval, startOfMonth, parseISO } from "date-fns";
+import { format, addMonths, eachDayOfInterval, startOfMonth, parseISO, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar, Loader2 } from "lucide-react";
 
@@ -25,8 +25,11 @@ export function AdminGenerator() {
     }, [startDate, months]);
 
     const calculateAvailableWeeks = () => {
-        const start = startOfMonth(parseISO(startDate));
-        const end = addMonths(start, months);
+        const referenceDate = parseISO(startDate);
+        const monthStart = startOfMonth(referenceDate);
+        // Align start to the Monday of the week containing the 1st of the month
+        const start = startOfWeek(monthStart, { weekStartsOn: 1 });
+        const end = addMonths(monthStart, months);
         const days = eachDayOfInterval({ start, end });
 
         // Group by week (Monday to Sunday)
