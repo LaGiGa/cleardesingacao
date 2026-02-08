@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, type FieldServiceAssignment } from "../db";
 import { useAdmin } from "../hooks/useAdmin";
 import { Button, Input, Card, CardContent, Label } from "../components/ui";
-import { Plus, Trash2, Edit2, Search, X, Flag, MapPin } from "lucide-react";
+import { Plus, Trash2, Edit2, Search, X, Flag } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -85,31 +85,39 @@ export default function FieldService() {
                 {assignments.map((item) => {
                     const isSpecial = !!item.specialMarker;
                     return (
-                        <Card key={item.id} className={`relative overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow ${isSpecial ? 'bg-amber-50 dark:bg-amber-950/20' : 'bg-white dark:bg-slate-900'}`}>
-                            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isSpecial ? 'bg-amber-500' : 'bg-purple-500'}`}></div>
-                            <CardContent className="p-4 pl-5">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex-1">
-                                        <p className="text-sm font-semibold capitalize text-gray-800 dark:text-gray-200 mb-1">{item.dayText}</p>
-                                        {isSpecial ? (
-                                            <div className="flex items-center text-amber-700 dark:text-amber-500 font-bold">
-                                                <Flag className="w-4 h-4 mr-1" />
-                                                {item.specialMarker}
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center text-gray-700 dark:text-gray-300 font-medium">
-                                                <MapPin className="w-4 h-4 mr-1 text-purple-500" />
-                                                {item.leader}
-                                            </div>
-                                        )}
-                                    </div>
-                                    {isAdmin && (
-                                        <div className="flex gap-2 ml-2">
-                                            <button onClick={() => { setEditingItem(item); setIsModalOpen(true); }} className="p-1.5 text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/50"><Edit2 className="w-4 h-4" /></button>
-                                            <button onClick={() => handleDelete(item.id)} className="p-1.5 text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"><Trash2 className="w-4 h-4" /></button>
+                        <Card key={item.id} className={`relative overflow-hidden group hover:shadow-lg transition-all border-l-4 ${isSpecial ? 'border-l-amber-500 bg-amber-50/50 dark:bg-amber-900/10' : 'border-l-purple-500 bg-white dark:bg-slate-900'}`}>
+                            <CardContent className="p-4 flex items-center gap-4">
+                                {/* Date Badge */}
+                                <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl shrink-0 ${isSpecial ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-500' : 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'}`}>
+                                    <span className="text-xs font-bold uppercase">{format(parseISO(item.date), "MMM", { locale: ptBR })}</span>
+                                    <span className="text-xl font-bold leading-none">{format(parseISO(item.date), "dd")}</span>
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold capitalize text-gray-400 dark:text-gray-500 mb-0.5">
+                                        {format(parseISO(item.date), "EEEE", { locale: ptBR })}
+                                    </p>
+
+                                    {isSpecial ? (
+                                        <div className="flex items-center text-amber-700 dark:text-amber-500 font-bold text-lg leading-tight">
+                                            <Flag className="w-4 h-4 mr-2 shrink-0" />
+                                            {item.specialMarker}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center text-gray-800 dark:text-white font-bold text-lg leading-tight">
+                                            {item.leader}
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Actions */}
+                                {isAdmin && (
+                                    <div className="flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => { setEditingItem(item); setIsModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
+                                        <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     );

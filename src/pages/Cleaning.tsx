@@ -96,24 +96,37 @@ export default function Cleaning() {
                     <div key={month} className="space-y-2">
                         <h2 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider pl-2 sticky top-[4.5rem] bg-gray-50/90 dark:bg-slate-950/90 backdrop-blur-sm py-1 z-0">{month}</h2>
                         {items.map((item: CleaningAssignment) => (
-                            <Card key={item.id} className="relative overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-900">
-                                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500"></div>
-                                <CardContent className="p-4 pl-5">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="text-sm font-semibold capitalize text-gray-800 dark:text-gray-200">{item.dayText}</p>
-                                            <p className="text-md text-gray-700 dark:text-gray-300 mt-1 font-medium leading-snug">
-                                                {item.designatedBrothers.join(", ")}
+                            <Card key={item.id} className="relative overflow-hidden group hover:shadow-lg transition-all border-l-4 border-l-blue-500 bg-white dark:bg-slate-900">
+                                <CardContent className="p-4 flex items-center gap-4">
+                                    {/* Date Badge */}
+                                    <div className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shrink-0">
+                                        <span className="text-xs font-bold uppercase">{format(parseISO(item.date), "MMM", { locale: ptBR })}</span>
+                                        <span className="text-xl font-bold leading-none">{format(parseISO(item.date), "dd")}</span>
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold capitalize text-gray-400 dark:text-gray-500 mb-0.5">
+                                            {format(parseISO(item.date), "EEEE", { locale: ptBR })}
+                                        </p>
+                                        <h3 className="text-lg font-bold text-gray-800 dark:text-white leading-tight truncate">
+                                            {item.designatedBrothers.join(", ")}
+                                        </h3>
+                                        {item.observation && (
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic flex items-center gap-1">
+                                                <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                                                {item.observation}
                                             </p>
-                                            {item.observation && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{item.observation}</p>}
-                                        </div>
-                                        {isAdmin && (
-                                            <div className="flex flex-col gap-2 ml-2">
-                                                <button onClick={() => { setEditingItem(item); setIsModalOpen(true); }} className="p-1.5 text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/50"><Edit2 className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDelete(item.id)} className="p-1.5 text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"><Trash2 className="w-4 h-4" /></button>
-                                            </div>
                                         )}
                                     </div>
+
+                                    {/* Actions */}
+                                    {isAdmin && (
+                                        <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => { setEditingItem(item); setIsModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
+                                            <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         ))}
