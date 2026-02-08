@@ -104,7 +104,7 @@ export function AdminGenerator() {
         const nameList = names.split('\n').map(n => n.trim()).filter(Boolean);
 
         // Iterate ONLY selected weeks
-        const selectedWeeks = availableWeeks.filter(w => w.selected);
+        const selectedWeeks = type === 'cleaning' ? availableWeeks.filter(w => w.selected) : [];
 
         // If no week selected, maybe warn user? or generate for all?
         // Let's assume if none selected, generate for all (fallback) or nothing.
@@ -242,30 +242,30 @@ export function AdminGenerator() {
                 </div>
 
                 {/* Week Selection UI */}
-                <div className="space-y-2 border p-3 rounded-md bg-slate-50 dark:bg-slate-900/50">
-                    <Label className="text-xs uppercase tracking-wider text-slate-500">Selecione as Semanas Responsáveis</Label>
-                    <div className="max-h-40 overflow-y-auto space-y-2">
-                        {availableWeeks.map((week, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    id={`week-${idx}`}
-                                    checked={week.selected}
-                                    onChange={() => toggleWeek(idx)}
-                                    className="rounded border-gray-300 dark:border-slate-700"
-                                />
-                                <label htmlFor={`week-${idx}`} className="text-sm cursor-pointer select-none">
-                                    Semana: {week.label}
-                                </label>
-                            </div>
-                        ))}
+                {type === 'cleaning' && (
+                    <div className="space-y-2 border p-3 rounded-md bg-slate-50 dark:bg-slate-900/50">
+                        <Label className="text-xs uppercase tracking-wider text-slate-500">Selecione as Semanas Responsáveis</Label>
+                        <div className="max-h-40 overflow-y-auto space-y-2">
+                            {availableWeeks.map((week, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id={`week-${idx}`}
+                                        checked={week.selected}
+                                        onChange={() => toggleWeek(idx)}
+                                        className="rounded border-gray-300 dark:border-slate-700"
+                                    />
+                                    <label htmlFor={`week-${idx}`} className="text-sm cursor-pointer select-none">
+                                        Semana: {week.label}
+                                    </label>
+                                </div>
+                            ))}
+                        </div>
+                        <p className="text-[10px] text-gray-400">
+                            Para Limpeza: Serão geradas Quartas e Domingos das semanas marcadas.
+                        </p>
                     </div>
-                    <p className="text-[10px] text-gray-400">
-                        {type === 'cleaning'
-                            ? "Para Limpeza: Serão geradas Quartas e Domingos das semanas marcadas."
-                            : "Para Campo: Serão gerados Domingos das semanas marcadas."}
-                    </p>
-                </div>
+                )}
 
                 <div className="space-y-2">
                     <Label>
