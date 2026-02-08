@@ -71,15 +71,15 @@ export default function Home() {
                                 {format(parseISO(nextAssignment.date), "EEEE", { locale: ptBR })}
                             </h3>
                             <p className="text-gray-500 dark:text-gray-400 font-medium mb-6">
-                                {format(parseISO(nextAssignment.date), "long", { locale: ptBR })}
+                                {format(parseISO(nextAssignment.date), "PPP", { locale: ptBR })}
                             </p>
 
                             <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
                                 <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Responsável</p>
                                 <p className="text-gray-800 dark:text-gray-200 font-medium text-lg leading-relaxed">
                                     {nextAssignment.type === 'cleaning'
-                                        ? nextAssignment.designatedBrothers.join(", ")
-                                        : nextAssignment.leader}
+                                        ? (Array.isArray(nextAssignment.designatedBrothers) ? nextAssignment.designatedBrothers.join(", ") : "Sem irmãos definidos")
+                                        : nextAssignment.leader || "A definir"}
                                 </p>
                                 {nextAssignment.type === 'field' && nextAssignment.specialMarker && (
                                     <div className="mt-3 inline-block px-3 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-lg font-bold">
@@ -141,8 +141,8 @@ export default function Home() {
                                         </h4>
                                         <p className="text-sm text-gray-500 truncate">
                                             {item.type === 'cleaning'
-                                                ? item.designatedBrothers.join(", ")
-                                                : item.leader}
+                                                ? (Array.isArray(item.designatedBrothers) ? item.designatedBrothers.join(", ") : "Sem irmãos")
+                                                : item.leader || "A definir"}
                                         </p>
                                     </div>
                                     <div className={`w-2 h-2 rounded-full ${item.type === 'cleaning' ? 'bg-blue-400' : 'bg-purple-400'}`}></div>
