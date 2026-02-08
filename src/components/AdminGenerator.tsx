@@ -1,33 +1,90 @@
 import { useState, useEffect } from "react";
 import { db, type CleaningAssignment, type FieldServiceAssignment } from "../db";
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "./ui";
-import { format, addMonths, eachDayOfInterval, startOfMonth, isSunday, parseISO } from "date-fns";
+import { format, addMonths, eachDayOfInterval, startOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar, Loader2 } from "lucide-react";
 
 export function AdminGenerator() {
     const [type, setType] = useState<'cleaning' | 'field'>('cleaning');
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-    const [months, setMonths] = useState(3);
+    const [months, setMonths] = useState(1);
     const [names, setNames] = useState("");
     const [loading, setLoading] = useState(false);
     const [preview, setPreview] = useState<any[]>([]);
+
+    // New state for week selection
+    const [availableWeeks, setAvailableWeeks] = useState<{ start: Date, end: Date, label: string, selected: boolean }[]>([]);
 
     useEffect(() => {
         loadRecentPatterns();
     }, [type]);
 
+    useEffect(() => {
+        calculateAvailableWeeks();
+    }, [startDate, months]);
+
+    const calculateAvailableWeeks = () => {
+        const start = startOfMonth(parseISO(startDate));
+        const end = addMonths(start, months);
+        const days = eachDayOfInterval({ start, end });
+
+        // Group by week (Monday to Sunday)
+        const weeks: { start: Date, end: Date, label: string, selected: boolean }[] = [];
+        let currentWeek: Date[] = [];
+
+        days.forEach((day) => {
+            // 1 = Monday, 0 = Sunday.
+            // date-fns getDay: 0=Sun, 1=Mon... 6=Sat.
+            // We want chunks from Mon to Sun.
+            const dayOfWeek = day.getDay();
+
+            // If it's Monday and we have a previous week accumulating, push it?
+            // Actually simpler: just iterate and check if it's the start of a week.
+            // Let's use isMonday to start a new block?
+            // But the month might start on Wednesday.
+
+            // Approach: Iterate all days.
+            // If currentWeek is empty, start it.
+            // Add day.
+            // If day is Sunday, end week, push to weeks, clear currentWeek.
+
+            currentWeek.push(day);
+            if (dayOfWeek === 0) { // Sunday
+                const wStart = currentWeek[0];
+                const wEnd = currentWeek[currentWeek.length - 1];
+                const label = `${format(wStart, "dd/MM")} a ${format(wEnd, "dd/MM")}`;
+                weeks.push({ start: wStart, end: wEnd, label, selected: false });
+                currentWeek = [];
+            }
+        });
+
+        // Push partial week if exists (end of period)
+        if (currentWeek.length > 0) {
+            const wStart = currentWeek[0];
+            const wEnd = currentWeek[currentWeek.length - 1];
+            const label = `${format(wStart, "dd/MM")} a ${format(wEnd, "dd/MM")}`;
+            weeks.push({ start: wStart, end: wEnd, label, selected: false });
+        }
+
+        setAvailableWeeks(weeks);
+    };
+
+    const toggleWeek = (index: number) => {
+        const updated = [...availableWeeks];
+        updated[index].selected = !updated[index].selected;
+        setAvailableWeeks(updated);
+    }
+
     const loadRecentPatterns = async () => {
         try {
             if (type === 'cleaning') {
-                // Get unique last used groups
                 const recent = await db.cleaningAssignments.orderBy('date').reverse().limit(20).toArray();
                 const uniqueGroups = new Set<string>();
                 recent.forEach(r => {
                     const groupStr = r.designatedBrothers.join(', ');
                     if (groupStr) uniqueGroups.add(groupStr);
                 });
-                // Convert Set to Array and then join with newline
                 setNames(Array.from(uniqueGroups).reverse().join('\n'));
             } else {
                 const recent = await db.fieldServiceAssignments.orderBy('date').reverse().limit(20).toArray();
@@ -43,70 +100,84 @@ export function AdminGenerator() {
     };
 
     const handleGeneratePreview = () => {
-        const start = startOfMonth(parseISO(startDate));
-        const end = addMonths(start, months);
-
-        // Get all dates in range
-        const allDays = eachDayOfInterval({ start, end });
-
-        // Filter Sundays (and Wednesdays for cleaning? User said "standard is Sunday", implies maybe only Sundays)
-        // Usually Cleaning is Wed/Sun or Sat/Sun. Let's stick to Sundays based on request "noss padrão é domingo".
-        // But seed data had Wednesdays too. Let's just do Sundays for now as per request.
-        // Wait, cleaning usually has mid-week too. "Grupo Arno 73" might have specific days.
-        // The user complained "showing Saturdays, but our standard is Sunday".
-        // I will generate for SUNDAYS only for now, or allow selecting days?
-        // Let's stick to simple: Generate Sundays.
-
-        const sundays = allDays.filter(day => isSunday(day));
-
-        const generated = [];
+        const generated: any[] = [];
         const nameList = names.split('\n').map(n => n.trim()).filter(Boolean);
 
-        let nameIndex = 0;
+        // Iterate ONLY selected weeks
+        const selectedWeeks = availableWeeks.filter(w => w.selected);
 
-        for (const date of sundays) {
-            const dateStr = format(date, 'yyyy-MM-dd');
-            const monthLabel = format(date, 'MMMM', { locale: ptBR });
-            const dayText = format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR });
+        // If no week selected, maybe warn user? or generate for all?
+        // Let's assume if none selected, generate for all (fallback) or nothing.
+        // Better: require selection if cleaning.
+        // For field service, user might want standard Sunday logic.
 
-            if (type === 'cleaning') {
-                // For cleaning, we might want a group of names.
-                // If the user provides lines like:
-                // Group A
-                // Group B
-                // We cycle them.
+        // Actually, user Requirements said: "Cleaning... admin select specific weeks... assignments are Wed and Sun".
+        // Field service logic wasn't explicitly changed, assuming it stays Sunday only? 
+        // Or should we apply this to both? The request specifically mentioned "Cleaning".
+        // Let's apply week selection to BOTH for consistency, but for Field maybe only pick Sundays.
+        // User: "entrega... domingo". Field Service usually is daily or weekends.
+        // Let's stick to the request: "Cleaning assignments... Wed and Sun".
+        // For Field, let's keep it simply "Sundays" within selected weeks? Or all days?
+        // Existing logic was "Sundays". Let's keep Field as Sundays within selected weeks.
 
-                let assigned: string[] = [];
-                if (nameList.length > 0) {
-                    // If names are provided, take one line per Sunday? Or rotating groups?
-                    // Let's assume one line = one group description or list of names.
-                    assigned = nameList[nameIndex % nameList.length].split(',').map(s => s.trim());
-                    nameIndex++;
+        const weeksToProcess = selectedWeeks.length > 0 ? selectedWeeks : availableWeeks;
+
+        // Refactored Loop to ensure "Same Group per Week" logic
+
+        let groupIndex = 0;
+
+        for (const week of weeksToProcess) {
+            const daysInWeek = eachDayOfInterval({ start: week.start, end: week.end });
+
+            // Prepare group for this week
+            let currentGroup: string[] = [];
+            let currentLeader = "A definir";
+
+            if (nameList.length > 0) {
+                const rawName = nameList[groupIndex % nameList.length];
+                if (type === 'cleaning') {
+                    currentGroup = rawName.split(',').map(s => s.trim());
+                } else {
+                    currentLeader = rawName;
                 }
+            }
 
-                generated.push({
-                    date: dateStr,
-                    monthLabel: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
-                    dayText,
-                    designatedBrothers: assigned,
-                    type: 'cleaning'
-                } as CleaningAssignment & { type: string });
-            } else {
-                // Field Service
-                let leader = "A definir";
-                if (nameList.length > 0) {
-                    leader = nameList[nameIndex % nameList.length];
-                    nameIndex++;
+            // Find applicable days
+            const targetDays = daysInWeek.filter(d => {
+                const dw = d.getDay();
+                if (type === 'cleaning') return dw === 3 || dw === 0; // Wed, Sun
+                return dw === 0; // Sun for Field
+            });
+
+            if (targetDays.length > 0) {
+                // Only increment group index if we actually generated assignments for this week
+                groupIndex++;
+            }
+
+            for (const date of targetDays) {
+                const dateStr = format(date, 'yyyy-MM-dd');
+                const monthLabel = format(date, 'MMMM', { locale: ptBR });
+                const dayText = format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR });
+
+                if (type === 'cleaning') {
+                    generated.push({
+                        date: dateStr,
+                        monthLabel: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+                        dayText,
+                        designatedBrothers: currentGroup,
+                        type: 'cleaning'
+                    } as CleaningAssignment & { type: string });
+                } else {
+                    generated.push({
+                        date: dateStr,
+                        dayText,
+                        leader: currentLeader,
+                        type: 'field'
+                    } as FieldServiceAssignment & { type: string });
                 }
-
-                generated.push({
-                    date: dateStr,
-                    dayText,
-                    leader,
-                    type: 'field'
-                } as FieldServiceAssignment & { type: string });
             }
         }
+
         setPreview(generated);
     };
 
@@ -170,18 +241,44 @@ export function AdminGenerator() {
                     />
                 </div>
 
+                {/* Week Selection UI */}
+                <div className="space-y-2 border p-3 rounded-md bg-slate-50 dark:bg-slate-900/50">
+                    <Label className="text-xs uppercase tracking-wider text-slate-500">Selecione as Semanas Responsáveis</Label>
+                    <div className="max-h-40 overflow-y-auto space-y-2">
+                        {availableWeeks.map((week, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id={`week-${idx}`}
+                                    checked={week.selected}
+                                    onChange={() => toggleWeek(idx)}
+                                    className="rounded border-gray-300 dark:border-slate-700"
+                                />
+                                <label htmlFor={`week-${idx}`} className="text-sm cursor-pointer select-none">
+                                    Semana: {week.label}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
+                    <p className="text-[10px] text-gray-400">
+                        {type === 'cleaning'
+                            ? "Para Limpeza: Serão geradas Quartas e Domingos das semanas marcadas."
+                            : "Para Campo: Serão gerados Domingos das semanas marcadas."}
+                    </p>
+                </div>
+
                 <div className="space-y-2">
                     <Label>
-                        {type === 'cleaning' ? 'Lista de Grupos/Irmãos (um grupo por linha)' : 'Lista de Dirigentes (um por linha)'}
+                        {type === 'cleaning' ? 'Lista de Grupos/Irmãos (um grupo por semana)' : 'Lista de Dirigentes (um por semana)'}
                     </Label>
                     <textarea
                         className="w-full p-2 border rounded-md min-h-[100px] bg-white dark:bg-slate-950 dark:border-slate-800 dark:text-gray-100"
-                        placeholder={type === 'cleaning' ? "João, Maria\nPedro, Tiago" : "José\nCarlos"}
+                        placeholder={type === 'cleaning' ? "Grupo A\nGrupo B" : "José\nCarlos"}
                         value={names}
                         onChange={(e) => setNames(e.target.value)}
                     />
                     <p className="text-xs text-gray-500">
-                        Deixe em branco para criar datas vazias. Se preenchido, os nomes serão rotacionados a cada Domingo.
+                        Os nomes serão distribuídos sequencialmente para cada <strong>Semana Selecionada</strong>.
                     </p>
                 </div>
 
@@ -206,7 +303,7 @@ export function AdminGenerator() {
                                         <Input
                                             value={item.designatedBrothers.join(', ')}
                                             onChange={(e) => {
-                                                const newNames = e.target.value.split(',').map(s => s.trim());
+                                                const newNames = e.target.value.split(',').map((s: string) => s.trim());
                                                 setPreview(prev => {
                                                     const updated = [...prev];
                                                     updated[i] = { ...updated[i], designatedBrothers: newNames };
